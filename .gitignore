@@ -1,0 +1,11 @@
+# ----- Credentials -----
+genai-exhange-hackathon-9bec100f5d85.json
+
+# ---- Virtual environments ----
+gxh_venv/
+venv/
+.venv/
+ocr_venv/
+env/
+.env
+.env.*/
