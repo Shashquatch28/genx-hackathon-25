@@ -9,3 +9,6 @@ ocr_venv/
 env/
 .env
 .env.*/
+
+# ----- Files -----
+requirements.txt
