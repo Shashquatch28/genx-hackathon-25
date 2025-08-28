@@ -1,5 +1,5 @@
-from google.cloud import documentai_v1 as documentai
 from dotenv import load_dotenv
+from google.cloud import documentai_v1 as documentai
 from typing import Dict, Any
 import tempfile
 from io import BytesIO
