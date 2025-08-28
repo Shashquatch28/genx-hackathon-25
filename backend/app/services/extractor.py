@@ -8,6 +8,8 @@ import os
 # ===== defnine constants =====
 load_dotenv()
 
+GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
 PROJECT_ID = os.getenv("GCP_PROJECT_ID")
 LOCATION = os.getenv("GCP_LOCATION")
 PROCESSOR_ID = os.getenv("GCP_PROCESSOR_ID")

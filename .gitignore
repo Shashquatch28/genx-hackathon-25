@@ -12,3 +12,4 @@ env/
 
 # ----- Files -----
 __pycache__/
+test_files.py
