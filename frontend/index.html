@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GenX Hackathon</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>GenX Hackathon</h1>
+    <nav>
+      <button onclick="showSection('upload')">Upload</button>
+      <button onclick="showSection('rewrite')">Rewrite</button>
+      <button onclick="showSection('timeline')">Timeline</button>
+      <button onclick="showSection('risks')">Risk Radar</button>
+      <button onclick="showSection('chat')">What-If Chat</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Upload Section -->
+    <section id="uploadSection">
+      <h2>Upload File</h2>
+      <form id="uploadForm">
+        <input type="file" id="file" name="file" required />
+        <button type="submit">Upload</button>
+      </form>
+      <pre id="uploadResult">Waiting for upload...</pre>
+    </section>
+
+    <!-- Rewrite Section -->
+    <section id="rewriteSection" style="display:none;">
+      <h2>Rewrite Text</h2>
+      <textarea id="rewriteInput" rows="5" placeholder="Enter text here..."></textarea>
+      <button id="rewriteBtn">Rewrite</button>
+      <pre id="rewriteResult">No rewrite yet.</pre>
+    </section>
+
+    <!-- Timeline Section -->
+    <section id="timelineSection" style="display:none;">
+      <h2>Timeline</h2>
+      <div id="timelineContainer">Loading timeline...</div>
+    </section>
+
+    <!-- Risk Radar Section -->
+    <section id="risksSection" style="display:none;">
+      <h2>Risk Radar</h2>
+      <div id="riskContainer">Loading risks...</div>
+    </section>
+
+    <!-- Chat Section -->
+    <section id="chatSection" style="display:none;">
+      <h2>What-If Chat</h2>
+      <div id="chatBox"></div>
+      <input type="text" id="chatInput" placeholder="Ask a question..." />
+      <button id="chatSend">Send</button>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
