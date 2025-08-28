@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from app.services.extractor import extract_text_and_blocks
 
-router = APIRouter(tags=["upload"])
+router = APIRouter()
 
 @router.post("/upload")
 async def upload_contract(file: UploadFile = File(...)):
