@@ -11,5 +11,10 @@ env/
 .env.*/
 
 # ----- Files -----
-__pycache__/
 test_files.py
+
+# ----- Pycache files -----
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
