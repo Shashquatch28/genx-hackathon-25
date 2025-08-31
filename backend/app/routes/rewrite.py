@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from app.models import RewriteRequest, RewriteResponse
-from app.services.rewriter import rewrite_text
+from ..models import RewriteRequest, RewriteResponse
+from ..services.rewriter import rewrite_text
 
 router = APIRouter()
 

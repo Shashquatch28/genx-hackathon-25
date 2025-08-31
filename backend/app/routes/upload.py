@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from app.services.extractor import extract_text_and_blocks
+from ..services.extractor import extract_text_and_blocks
 
 router = APIRouter()
 
