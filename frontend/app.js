@@ -126,44 +126,44 @@
 // });
 
 
-// document.getElementById("uploadForm").addEventListener("submit", async function (event) {
-//   event.preventDefault();
+document.getElementById("uploadForm").addEventListener("submit", async function (event) {
+  event.preventDefault();
 
-//   const fileInput = document.getElementById("fileInput");
-//   const responseBox = document.getElementById("responseBox");
+  const fileInput = document.getElementById("fileInput");
+  const responseBox = document.getElementById("responseBox");
 
-//   if (fileInput.files.length === 0) {
-//     responseBox.textContent = "Please select a file first.";
-//     return;
-//   }
+  if (fileInput.files.length === 0) {
+    responseBox.textContent = "Please select a file first.";
+    return;
+  }
 
-//   const formData = new FormData();
-//   formData.append("file", fileInput.files[0]);
+  const formData = new FormData();
+  formData.append("file", fileInput.files[0]);
 
-//   responseBox.textContent = "Uploading...";
+  responseBox.textContent = "Uploading...";
 
-//   // Auto-detect backend (use current origin if possible, otherwise fallback to localhost:8000)
-//   let backendUrl;
-//   if (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost") {
-//     backendUrl = "http://127.0.0.1:8000"; // local dev backend
-//   } else {
-//     backendUrl = window.location.origin; // same domain as frontend when deployed
-//   }
+  // Auto-detect backend (use current origin if possible, otherwise fallback to localhost:8000)
+  let backendUrl;
+  if (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost") {
+    backendUrl = "http://127.0.0.1:8000"; // local dev backend
+  } else {
+    backendUrl = window.location.origin; // same domain as frontend when deployed
+  }
 
-//   try {
-//     const response = await fetch(`${backendUrl}/upload`, {
-//       method: "POST",
-//       body: formData,
-//     });
+  try {
+    const response = await fetch(`${backendUrl}/api/upload`, {
+      method: "POST",
+      body: formData,
+    });
 
-//     if (!response.ok) {
-//       const errorData = await response.json();
-//       throw new Error(errorData.detail || "Upload failed");
-//     }
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || "Upload failed");
+    }
 
-//     const result = await response.json();
-//     responseBox.textContent = JSON.stringify(result, null, 2);
-//   } catch (error) {
-//     responseBox.textContent = "Error: " + error.message;
-//   }
-// });
+    const result = await response.json();
+    responseBox.textContent = JSON.stringify(result, null, 2);
+  } catch (error) {
+    responseBox.textContent = "Error: " + error.message;
+  }
+});

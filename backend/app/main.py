@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-
+from fastapi.middleware.cors import CORSMiddleware
 
 
 # Absolute imports so Pylance resolves from project root
@@ -24,4 +24,20 @@ app.include_router(rewrite.router, prefix="/api", tags=["rewrite"])
 @app.get("/", tags=["health"])
 async def root():
     return {"message": "AI Contract Analyser backend is running."}
+
+# CORS 
+ALLOWED_ORIGINS = [
+"http://127.0.0.1:5500",
+"http://localhost:5500",
+]
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,   
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+    max_age=600,       
+)
 
