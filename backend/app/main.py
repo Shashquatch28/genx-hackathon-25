@@ -29,8 +29,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 # ---- Routers ----
 app.include_router(upload.router, prefix="/api", tags=["extract"])
 app.include_router(rewrite.router, prefix="/api", tags=["rewrite"])
-app.include_router(map.router, prefix="/api")
-app.include_router(ask.router, prefix="/api")
+app.include_router(map.router, prefix="/api", tags=["timeline"])
+app.include_router(ask.router, prefix="/api", tags=["chatbot"])
 
 # ---- Health Endpoint ----
 @app.get("/", tags=["health"])

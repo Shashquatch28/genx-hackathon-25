@@ -1,18 +1,18 @@
-from fastapi import APIRouter, HTTPException, Body
-from ..models import MapResponse
-from ..storage import document_storage
-from ..services import ai_services
+from fastapi import APIRouter, HTTPException
+from app.models import MapRequest, MapResponse
+from app.services.timeline import generate_map
 
-router = APIRouter()
+router = APIRouter(tags=["timeline"])
 
-# in routes/map.py
-from pydantic import BaseModel # Add this import
-
-class MapRequest(BaseModel): # Add a request model
-    contract_text: str
-
-@router.post("/map", response_model=MapResponse, tags=["2. Core Features"])
-def get_contract_map(request: MapRequest):
-    # Get the text directly from the request body
-    full_text = request.contract_text
-    return ai_services.generate_map(full_text)
+@router.post("/map", response_model=MapResponse, summary="Get Contract Map")
+def get_contract_map(req: MapRequest) -> MapResponse:
+    """
+    Accepts {"contract_text": "..."} and returns structure[] and timeline[].
+    """
+    try:
+        return generate_map(req.contract_text)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()  # print full stack trace to your terminal logs
+        # 👇 Send real error message back in response while debugging
+        raise HTTPException(status_code=500, detail=str(e))
