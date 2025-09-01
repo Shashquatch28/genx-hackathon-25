@@ -1,0 +1,51 @@
+# backend/app/models.py
+from __future__ import annotations
+
+from typing import List, Optional
+from pydantic import BaseModel, Field
+
+# ----- Rewrite -----
+class RewriteRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=20000)
+    mode: str = Field("layman", pattern="^(layman)$")
+
+class RewriteResponse(BaseModel):
+    rewritten_text: str
+    meta: dict | None = None
+
+# ----- Upload -----
+class UploadResponse(BaseModel):
+    session_id: str = Field(..., description="Unique ID for this document session.")
+    filename: str
+    message: str = "File uploaded and text extracted successfully."
+
+# ----- Timeline (/api/map) -----
+class DocumentSection(BaseModel):
+    title: str
+    content_summary: str
+    # Use default_factory to avoid shared mutable defaults
+    subsections: List["DocumentSection"] = Field(default_factory=list)
+
+class TimelineEvent(BaseModel):
+    date_description: str
+    event: str
+
+# Request model expected by the timeline route
+class MapRequest(BaseModel):
+    contract_text: str
+
+class MapResponse(BaseModel):
+    structure: List[DocumentSection]
+    timeline: List[TimelineEvent]
+
+# Resolve forward refs for recursive model (Pydantic v2)
+DocumentSection.model_rebuild()
+
+# ----- Chatbot (/api/ask) -----
+class AskRequest(BaseModel):
+    contract_text: str
+    question: str
+
+class AskResponse(BaseModel):
+    answer: str
+    references: List[str] = Field(default_factory=list, description="Clause references or excerpts used for the answer.")
