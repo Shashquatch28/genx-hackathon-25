@@ -1,62 +1,114 @@
 # backend/app/services/genai_client.py
+from __future__ import annotations
 
 import os
-from typing import Optional
+from typing import Optional, Dict, Any
 
 # Google Gen AI SDK (unified client for Vertex AI or Developer API)
 from google import genai
-from google.genai.types import HttpOptions
 
-# ---- Environment mapping (adapted to your .env) ----
-# Required for Vertex AI:
-#   GOOGLE_APPLICATION_CREDENTIALS = C:/keys/....json
-#   GCP_PROJECT_ID                 = genai-exhange-hackathon
-#   VAI_GCP_LOCATION               = global   # or us-central1, etc.
-#
-# Optional (only if intentionally using Developer API):
-#   GOOGLE_API_KEY                 = <your-key>
+# Make typed helpers optional to avoid import-time crashes on older SDKs
+try:
+    from google.genai import types as genai_types  # type: ignore
+    from google.genai.types import HttpOptions      # type: ignore
+except Exception:  # pragma: no cover
+    genai_types = None  # type: ignore[assignment]
+    HttpOptions = None  # type: ignore[assignment]
 
-PROJECT = os.getenv("GCP_PROJECT_ID")
-LOCATION = (os.getenv("VAI_GCP_LOCATION") or "global").strip().lower()
-API_KEY: Optional[str] = os.getenv("GOOGLE_API_KEY")
-
-# Prefer Vertex AI (service account) unless only an API key is provided.
-USE_VERTEX = True if PROJECT else False
-
-# Cache the client so callers can import get_client() and reuse it
+# Cached client instance
 _client: Optional[genai.Client] = None
+
+def _read_env() -> Dict[str, str]:
+    # Read env at call-time so values are present even if load_dotenv ran later
+    return {
+        "PROJECT": os.getenv("GCP_PROJECT_ID") or "",
+        "LOCATION": (os.getenv("VAI_GCP_LOCATION") or "global").strip().lower(),
+        "API_KEY": os.getenv("GOOGLE_API_KEY") or "",
+        "MODEL": os.getenv("GENAI_MODEL") or "gemini-2.5-flash",
+    }
 
 def get_client() -> genai.Client:
     """
     Returns a configured Google Gen AI client.
-    - Vertex AI mode (recommended): uses service-account auth from GOOGLE_APPLICATION_CREDENTIALS,
-      project from GCP_PROJECT_ID, and location from VAI_GCP_LOCATION (default 'global').
-    - Developer API fallback: if PROJECT is missing but GOOGLE_API_KEY is set, uses API key mode.
+    - Vertex AI mode (recommended): uses ADC from GOOGLE_APPLICATION_CREDENTIALS,
+      project from GCP_PROJECT_ID, and location from VAI_GCP_LOCATION.
+    - Developer API fallback: if PROJECT is missing but GOOGLE_API_KEY is set, uses API key.
     """
     global _client
     if _client is not None:
         return _client
 
-    http_opts = HttpOptions(api_version="v1")  # use stable v1 endpoints
+    env = _read_env()
+    use_vertex = bool(env["PROJECT"])
 
-    if USE_VERTEX:
-        if not PROJECT:
-            raise RuntimeError("Missing GCP_PROJECT_ID for Vertex AI client creation.")
-        # LOCATION must be a supported Vertex location, e.g. 'global' or 'us-central1'
+    http_kwargs: Dict[str, Any] = {}
+    # Pass HttpOptions only if available in your installed SDK
+    if HttpOptions is not None:
+        try:
+            http_kwargs["http_options"] = HttpOptions(api_version="v1")
+        except Exception:
+            pass  # continue without http_options on mismatched versions
+
+    if use_vertex:
         _client = genai.Client(
             vertexai=True,
-            project=PROJECT,
-            location=LOCATION or "global",
-            http_options=http_opts,
+            project=env["PROJECT"],
+            location=env["LOCATION"] or "global",
+            **http_kwargs,
         )
         return _client
 
-    # Fallback to Developer API (only if explicitly configured)
-    if not API_KEY:
+    if not env["API_KEY"]:
         raise RuntimeError(
-            "No Vertex project configured (GCP_PROJECT_ID missing) and no GOOGLE_API_KEY found. "
-            "Set GCP_PROJECT_ID and VAI_GCP_LOCATION for Vertex, or set GOOGLE_API_KEY for Developer API."
+            "Configure GCP_PROJECT_ID (Vertex) or GOOGLE_API_KEY (Developer API)."
         )
 
-    _client = genai.Client(api_key=API_KEY, http_options=http_opts)
+    _client = genai.Client(api_key=env["API_KEY"], **http_kwargs)
     return _client
+
+def generate_content(prompt: str, *, model: Optional[str] = None, **config_kwargs) -> str:
+    """
+    Teammate-compatible helper:
+    client.models.generate_content(model=..., contents=..., config=...) -> str response.text
+    """
+    client = get_client()
+    model_name = model or _read_env()["MODEL"]
+
+    config = None
+    if genai_types is not None and config_kwargs:
+        try:
+            config = genai_types.GenerateContentConfig(**config_kwargs)  # type: ignore[attr-defined]
+        except Exception:
+            config = None
+
+    resp = client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=config,
+    )
+    return getattr(resp, "text", "") or ""
+
+def generate_content_stream(prompt: str, *, model: Optional[str] = None, **config_kwargs):
+    """
+    Streaming variant using client.models.generate_content_stream(...)
+    Yields text chunks.
+    """
+    client = get_client()
+    model_name = model or _read_env()["MODEL"]
+
+    config = None
+    if genai_types is not None and config_kwargs:
+        try:
+            config = genai_types.GenerateContentConfig(**config_kwargs)  # type: ignore[attr-defined]
+        except Exception:
+            config = None
+
+    stream = client.models.generate_content_stream(
+        model=model_name,
+        contents=prompt,
+        config=config,
+    )
+    for chunk in stream:
+        text = getattr(chunk, "text", "")
+        if text:
+            yield text

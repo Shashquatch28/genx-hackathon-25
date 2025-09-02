@@ -12,6 +12,8 @@ load_dotenv()
 from .routes import upload
 from .routes import rewrite
 from .routes import map, ask
+from .routes import risk_radar 
+
 
 app = FastAPI(title="Jargon Analyser Backend", version="0.1.0")
 
@@ -31,6 +33,7 @@ app.include_router(upload.router, prefix="/api", tags=["extract"])
 app.include_router(rewrite.router, prefix="/api", tags=["rewrite"])
 app.include_router(map.router, prefix="/api", tags=["timeline"])
 app.include_router(ask.router, prefix="/api", tags=["chatbot"])
+app.include_router(risk_radar.router, prefix="/api", tags=["risk"])
 
 # ---- Health Endpoint ----
 @app.get("/", tags=["health"])
