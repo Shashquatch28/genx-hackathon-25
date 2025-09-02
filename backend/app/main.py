@@ -13,6 +13,7 @@ from .routes import upload
 from .routes import rewrite
 from .routes import map, ask
 from .routes import risk_radar 
+from .routes import contextualize
 
 
 app = FastAPI(title="Jargon Analyser Backend", version="0.1.0")
@@ -34,6 +35,7 @@ app.include_router(rewrite.router, prefix="/api", tags=["rewrite"])
 app.include_router(map.router, prefix="/api", tags=["timeline"])
 app.include_router(ask.router, prefix="/api", tags=["chatbot"])
 app.include_router(risk_radar.router, prefix="/api", tags=["risk"])
+app.include_router(contextualize.router, prefix="/api", tags=["contextualizer"])
 
 # ---- Health Endpoint ----
 @app.get("/", tags=["health"])

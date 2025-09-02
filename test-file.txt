@@ -12,3 +12,18 @@ Vendor’s liability is unlimited and all costs shall be borne at buyer’s sole
     "contract_text": "This agreement is made on August 31, 2025. The total fee for services rendered shall be $5,000 USD, payable within 30 days of completion. The contract automatically renews on January 1st of each year.",
     "question": "What is the total fee?"
 }
+
+# ----- Contextualizer -----
+{
+  "text": "The tenant shall indemnify the landlord for all damages and penalties arising from any breach of this Agreement.",
+  "context": {
+    "role": "tenant",
+    "location": "California",
+    "contract_type": "lease",
+    "interests": [
+      "financial risk",
+      "obligations"
+    ],
+    "tone": "plain"
+  }
+}
