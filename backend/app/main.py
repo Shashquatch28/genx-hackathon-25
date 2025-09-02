@@ -50,9 +50,9 @@ ALLOWED_ORIGINS = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_origins=ALLOWED_ORIGINS,   # exact scheme+host+port
+    allow_credentials=True,          # only if sending cookies/Authorization
+    allow_methods=["*"],             # dev: allow all methods
+    allow_headers=["*"],             # dev: allow all request headers
     max_age=600,
 )

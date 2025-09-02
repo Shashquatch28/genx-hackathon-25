@@ -1,21 +1,106 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8">
-    <title>Contract Analyzer</title>
-    <link rel="stylesheet" href="style.css">
-  </head>
-  <body>
-    <h1>Upload Legal Document</h1>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GenX Hackathon — Smart Contract Analyzer</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <!-- NAV -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="#home" class="brand">GenX<span>AI</span></a>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">☰</button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#home" class="nav-link active">Home</a></li>
+        <li><a href="#analyze" class="nav-link">Analyze</a></li>
+        <li><a href="#results" class="nav-link">Results</a></li>
+        <li><a href="#timeline" class="nav-link">Timeline</a></li>
+        <li><a href="#risks" class="nav-link">Risk Radar</a></li>
+        <li><a href="#about" class="nav-link">About</a></li>
+      </ul>
+    </div>
+  </nav>
 
-    <form id="uploadForm">
-      <input type="file" id="fileInput" name="file" accept=".pdf,.docx,.txt" required>
-      <button type="submit">Upload</button>
+  <!-- HOME -->
+  <header id="home" class="hero section">
+    <div class="hero-content">
+      <h1>Smart Contract Analyzer</h1>
+      <p>Upload a file or chat with the AI to extract key clauses, risks, dates, and insights — fast.</p>
+      <a href="#analyze" class="btn primary">Get Started</a>
+    </div>
+  </header>
+
+  <!-- ANALYZE -->
+  <section id="analyze" class="section card">
+    <h2>Analyze Your Document</h2>
+    <p class="muted">Supported: .pdf, .docx, .txt</p>
+    <div class="upload-row">
+      <input type="file" id="fileInput" accept=".pdf,.docx,.txt" />
+      <button id="uploadBtn" class="btn">Upload & Analyze</button>
+    </div>
+    <div id="uploadStatus" class="status"></div>
+
+    <div class="or-divider"><span>or</span></div>
+
+    <div class="ask-row">
+      <input type="text" id="quickQuestion" placeholder="Ask a quick question about your contract…" />
+      <button id="askBtn" class="btn ghost">Ask</button>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results" class="section card">
+    <div class="flex-header">
+      <h2>Results</h2>
+      <div class="pill" id="fileBadge" hidden>no file</div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="simple">Simplified</button>
+      <button class="tab-btn" data-tab="advanced">Advanced</button>
+    </div>
+    <div id="simple" class="tab-content active"></div>
+    <div id="advanced" class="tab-content"></div>
+  </section>
+
+  <!-- TIMELINE -->
+  <section id="timeline" class="section card">
+    <h2>Important Dates & Events</h2>
+    <ul id="timelineList" class="timeline"></ul>
+  </section>
+
+  <!-- RISK RADAR -->
+  <section id="risks" class="section card">
+    <h2>Risk Radar</h2>
+    <ul id="riskList" class="risk-grid"></ul>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about" class="section card">
+    <h2>About This Project</h2>
+    <p>
+      Built for GenX Hackathon 2025: a fast, friendly analyzer that turns legalese into
+      clear summaries, highlights risks, and surfaces key dates. Featuring a live chatbot for Q&A.
+    </p>
+  </section>
+
+  <!-- CHATBOT -->
+  <button id="chatToggle" class="chat-toggle" aria-label="Open chat">💬</button>
+  <aside id="chatPanel" class="chat-panel" aria-live="polite" aria-modal="true">
+    <div class="chat-header">
+      <h3>Assistant</h3>
+      <button id="chatClose" class="icon-btn" aria-label="Close chat">✕</button>
+    </div>
+    <div id="chatMessages" class="chat-messages">
+      <div class="msg bot">Hi! Upload a file or ask me anything about your contract.</div>
+    </div>
+    <form id="chatForm" class="chat-input" autocomplete="off">
+      <input id="chatText" type="text" placeholder="Type your message…" required />
+      <button class="btn primary" id="chatSend" type="submit">Send</button>
     </form>
+  </aside>
 
-    <h2>Response:</h2>
-    <pre id="responseBox">No file uploaded yet.</pre>
-
-    <script src="app.js"></script>
-  </body>
+  <script src="app.js"></script>
+</body>
 </html>

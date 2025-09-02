@@ -1,169 +1,242 @@
-// // === Adjust backend URL if needed ===
-// const BASE_URL = "http://localhost:8000/api";
+// Config
+const baseURL = "http://127.0.0.1:8000/api";
 
-// // File Upload Form
-// document.getElementById("uploadForm").addEventListener("submit", async function(e) {
-//   e.preventDefault();
-
-//   const fileInput = document.getElementById("fileInput");
-//   if (!fileInput.files.length) {
-//     alert("Please select a file first!");
-//     return;
-//   }
-
-//   const file = fileInput.files[0];
-//   const formData = new FormData();
-//   formData.append("file", file);
-
-//   document.getElementById("status").innerText = "Processing...";
-
-//   try {
-//     const response = await fetch(`${BASE_URL}/upload`, {
-//       method: "POST",
-//       body: formData
-//     });
-
-//     if (!response.ok) throw new Error(`Upload failed: ${response.statusText}`);
-
-//     const data = await response.json();
-//     document.getElementById("status").innerText =
-//       `File processed: ${data.filename}`;
-
-//     // Render clauses
-//     const clausesDiv = document.getElementById("clauses");
-//     clausesDiv.innerHTML = "";
-//     (data.clauses || []).forEach(c => {
-//       const p = document.createElement("p");
-//       p.innerText = `Clause ${c.id}: ${c.text}`;
-//       clausesDiv.appendChild(p);
-//     });
-
-//     // Render risks
-//     const risksDiv = document.getElementById("risks");
-//     risksDiv.innerHTML = "";
-//     (data.risks || []).forEach(r => {
-//       const p = document.createElement("p");
-//       p.innerText = `- ${r}`;
-//       risksDiv.appendChild(p);
-//     });
-
-//     // Render timeline
-//     const timelineDiv = document.getElementById("timeline");
-//     timelineDiv.innerHTML = "";
-//     (data.timeline || []).forEach(t => {
-//       const p = document.createElement("p");
-//       p.innerText = `${t.date}: ${t.event}`;
-//       timelineDiv.appendChild(p);
-//     });
-
-//   } catch (err) {
-//     document.getElementById("status").innerText = "Error: " + err.message;
-//   }
-// });
-
-// // Chatbox for What-if questions
-// document.getElementById("chatSend").addEventListener("click", async function() {
-//   const input = document.getElementById("chatInput").value;
-//   if (!input.trim()) return;
-
-//   const chatOutput = document.getElementById("chatOutput");
-//   chatOutput.innerHTML += `<p><b>You:</b> ${input}</p>`;
-
-//   try {
-//     const response = await fetch(`${BASE_URL}/chat`, {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify({ question: input })
-//     });
-
-//     if (!response.ok) throw new Error(`Chat failed: ${response.statusText}`);
-
-//     const data = await response.json();
-//     chatOutput.innerHTML += `<p><b>AI:</b> ${data.answer}</p>`;
-
-//   } catch (err) {
-//     chatOutput.innerHTML += `<p><b>Error:</b> ${err.message}</p>`;
-//   }
-
-//   document.getElementById("chatInput").value = "";
-// });
+const endpoints = {
+  upload: "/upload",   
+  chat:   "/chat"
+};
 
 
+// Helpers
+const $ = (q)=>document.querySelector(q);
+const $$ = (q)=>document.querySelectorAll(q);
+
+const setText = (el, text="") => { el.textContent = text ?? ""; };
+const setHTMLSafe = (el, text="") => { el.textContent = text ?? ""; }; // prevent injection
+
+function setLoading(btn, isLoading, textIdle="Upload & Analyze", textBusy="Analyzing…"){
+  btn.disabled = !!isLoading;
+  btn.textContent = isLoading ? textBusy : textIdle;
+}
+
+function scrollToHash(hash){
+  const target = document.querySelector(hash);
+  if(!target) return;
+  const top = target.getBoundingClientRect().top + window.scrollY - 70;
+  window.scrollTo({ top, behavior: "smooth" });
+}
 
 
-// document.getElementById("uploadForm").addEventListener("submit", async function (event) {
-//   event.preventDefault();
+// Navigation behavior
+const navToggle = $("#navToggle");
+const navLinks = $("#navLinks");
+navToggle?.addEventListener("click", ()=> navLinks.classList.toggle("open"));
+navLinks?.addEventListener("click", (e)=>{
+  if(e.target.matches("a")) navLinks.classList.remove("open");
+});
 
-//   const fileInput = document.getElementById("fileInput");
-//   const responseBox = document.getElementById("responseBox");
+$$(".nav-link").forEach(a=>{
+  a.addEventListener("click", (e)=>{
+    e.preventDefault();
+    const href = a.getAttribute("href");
+    if(href?.startsWith("#")) scrollToHash(href);
+  });
+});
 
-//   if (fileInput.files.length === 0) {
-//     responseBox.textContent = "Please select a file first.";
-//     return;
-//   }
+// Highlight active section
+const sections = ["#home","#analyze","#results","#timeline","#risks","#about"].map(id=>document.querySelector(id));
+const navMap = {};
+$$(".nav-link").forEach(a=> navMap[a.getAttribute("href")] = a);
 
-//   const formData = new FormData();
-//   formData.append("file", fileInput.files[0]);
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      const id = `#${entry.target.id}`;
+      $$(".nav-link").forEach(n=>n.classList.remove("active"));
+      navMap[id]?.classList.add("active");
+    }
+  });
+},{ rootMargin: "-40% 0px -55% 0px", threshold: 0.01 });
+sections.forEach(s=> s && io.observe(s));
 
-//   responseBox.textContent = "Uploading...";
-
-//   try {
-//     const response = await fetch("http://127.0.0.1:8000/upload", {
-//       method: "POST",
-//       body: formData,
-//     });
-
-//     if (!response.ok) {
-//       const errorData = await response.json();
-//       throw new Error(errorData.detail || "Upload failed");
-//     }
-
-//     const result = await response.json();
-//     responseBox.textContent = JSON.stringify(result, null, 2);
-//   } catch (error) {
-//     responseBox.textContent = "Error: " + error.message;
-//   }
-// });
+// Sticky navbar subtle effect
+const navbar = $("#navbar");
+let lastY = window.scrollY;
+document.addEventListener("scroll", ()=>{
+  const y = window.scrollY;
+  navbar.style.boxShadow = y>10 ? "0 8px 30px rgba(0,0,0,.25)" : "none";
+  lastY = y;
+});
 
 
-document.getElementById("uploadForm").addEventListener("submit", async function (event) {
-  event.preventDefault();
+// Tabs
+$$(".tab-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    $$(".tab-btn").forEach(b=>b.classList.remove("active"));
+    $$(".tab-content").forEach(c=>c.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.add("active");
+  });
+});
 
-  const fileInput = document.getElementById("fileInput");
-  const responseBox = document.getElementById("responseBox");
 
-  if (fileInput.files.length === 0) {
-    responseBox.textContent = "Please select a file first.";
-    return;
-  }
+// Upload + Analyze
+const uploadBtn = $("#uploadBtn");
+const fileInput = $("#fileInput");
+const uploadStatus = $("#uploadStatus");
+const fileBadge = $("#fileBadge");
+
+let LAST_RESULT = null;   // keep recent analysis to share with chatbot
+let LAST_FILE_ID = null;  // if backend returns some id
+
+uploadBtn?.addEventListener("click", async ()=>{
+  const file = fileInput.files?.[0];
+  if(!file){ alert("Please choose a file first."); return; }
 
   const formData = new FormData();
-  formData.append("file", fileInput.files[0]);
+  formData.append("file", file);
 
-  responseBox.textContent = "Uploading...";
+  setLoading(uploadBtn, true);
+  setText(uploadStatus, `Uploading ${file.name}…`);
+  try{
+    const res = await fetch(baseURL + endpoints.upload, { method: "POST", body: formData });
+    if(!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const data = await res.json();
 
-  // Auto-detect backend (use current origin if possible, otherwise fallback to localhost:8000)
-  let backendUrl;
-  if (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost") {
-    backendUrl = "http://127.0.0.1:8000"; // local dev backend
-  } else {
-    backendUrl = window.location.origin; // same domain as frontend when deployed
-  }
+    LAST_RESULT = data;
+    LAST_FILE_ID = data.file_id ?? null;
 
-  try {
-    const response = await fetch(`${backendUrl}/api/upload`, {
-      method: "POST",
-      body: formData,
+    $("#simple").textContent  = data.simplified || "No simplified output.";
+    $("#advanced").textContent = data.advanced || "No advanced output.";
+
+    const tList = $("#timelineList"); tList.innerHTML = "";
+    (data.timeline || []).forEach(ev=>{
+      const li = document.createElement("li");
+      li.textContent = `${ev.date ?? "—"} • ${ev.event ?? ""}`;
+      tList.appendChild(li);
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || "Upload failed");
-    }
+    const rList = $("#riskList"); rList.innerHTML = "";
+    (data.risks || []).forEach(risk=>{
+      const li = document.createElement("li");
+      li.textContent = risk;
+      rList.appendChild(li);
+    });
 
-    const result = await response.json();
-    responseBox.textContent = JSON.stringify(result, null, 2);
-  } catch (error) {
-    responseBox.textContent = "Error: " + error.message;
+    // UI niceties
+    fileBadge.hidden = false;
+    fileBadge.textContent = file.name;
+    setText(uploadStatus, "Done. Jump to Results ↓");
+    scrollToHash("#results");
+  } catch(err){
+    console.error(err);
+    setText(uploadStatus, "Upload failed. Check console & CORS settings on backend.");
+    alert("Upload failed. Ensure FastAPI allows CORS for your frontend origin.");
+  } finally{
+    setLoading(uploadBtn, false);
+  }
+});
+
+// Quick question (sends text to chatbot endpoint too)
+$("#askBtn")?.addEventListener("click", ()=>{
+  const q = $("#quickQuestion").value.trim();
+  if(!q) return;
+  openChat();
+  enqueueUserMessage(q);
+  sendChat(q);
+});
+
+
+// Chatbot
+const chatToggle = $("#chatToggle");
+const chatPanel  = $("#chatPanel");
+const chatClose  = $("#chatClose");
+const chatForm   = $("#chatForm");
+const chatInput  = $("#chatText");
+const chatMsgs   = $("#chatMessages");
+
+function openChat(){ chatPanel.classList.add("open"); chatInput?.focus(); }
+function closeChat(){ chatPanel.classList.remove("open"); }
+chatToggle?.addEventListener("click", openChat);
+chatClose?.addEventListener("click", closeChat);
+
+function appendMsg(role, text, extraClass=""){
+  const div = document.createElement("div");
+  div.className = `msg ${role} ${extraClass}`.trim();
+  div.textContent = text;
+  chatMsgs.appendChild(div);
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+  return div;
+}
+
+function enqueueUserMessage(text){
+  return appendMsg("user", text);
+}
+
+function enqueueBotThinking(){
+  return appendMsg("bot", "Thinking…", "thinking");
+}
+
+chatForm?.addEventListener("submit", (e)=>{
+  e.preventDefault();
+  const text = chatInput.value.trim();
+  if(!text) return;
+  enqueueUserMessage(text);
+  chatInput.value = "";
+  sendChat(text);
+});
+
+async function sendChat(message){
+  const thinking = enqueueBotThinking();
+  try{
+    const payload = {
+      message,
+      file_id: LAST_FILE_ID,
+      context: {
+        simplified: LAST_RESULT?.simplified ?? null,
+        advanced: LAST_RESULT?.advanced ?? null,
+        timeline: LAST_RESULT?.timeline ?? null,
+        risks: LAST_RESULT?.risks ?? null
+      }
+    };
+
+    const res = await fetch(baseURL + endpoints.chat, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    // If your backend streams (text/event-stream), handle it here
+    const ctype = res.headers.get("content-type") || "";
+    if(ctype.includes("text/event-stream")){
+      // Stream tokens line-by-line
+      thinking.textContent = "";
+      thinking.classList.remove("thinking");
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      while(true){
+        const { value, done } = await reader.read();
+        if(done) break;
+        thinking.textContent += decoder.decode(value, { stream:true });
+        chatMsgs.scrollTop = chatMsgs.scrollHeight;
+      }
+    } else {
+      if(!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      const data = await res.json();
+      const reply = data.reply || data.answer || JSON.stringify(data, null, 2);
+      thinking.textContent = reply;
+      thinking.classList.remove("thinking");
+    }
+  } catch(err){
+    console.error(err);
+    thinking.textContent = "I couldn't reach the chat endpoint. Check that your backend is running and CORS is enabled.";
+    thinking.classList.remove("thinking");
+  }
+}
+
+// Open chat if user presses "?" anywhere
+document.addEventListener("keydown",(e)=>{
+  if(e.key === "/" && !e.metaKey && !e.ctrlKey){
+    e.preventDefault(); openChat();
   }
 });
