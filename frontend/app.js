@@ -1,33 +1,41 @@
 // Config
 const baseURL = "http://127.0.0.1:8000/api";
-
 const endpoints = {
-  upload: "/upload",   
-  chat:   "/chat"
+  upload: "/upload",
+  rewrite: "/rewrite",
+  map: "/map",
+  risk: "/risk/scan",
+  ask: "/ask"
 };
-
 
 // Helpers
 const $ = (q)=>document.querySelector(q);
 const $$ = (q)=>document.querySelectorAll(q);
 
-const setText = (el, text="") => { el.textContent = text ?? ""; };
-const setHTMLSafe = (el, text="") => { el.textContent = text ?? ""; }; // prevent injection
+function setText(el, text=""){ if(el) el.textContent = text ?? ""; }
+function setHTMLSafe(el, text=""){ if(el) el.textContent = text ?? ""; }
 
-function setLoading(btn, isLoading, textIdle="Upload & Analyze", textBusy="Analyzing…"){
+function setLoading(btn, isLoading, textIdle, textBusy){
   btn.disabled = !!isLoading;
-  btn.textContent = isLoading ? textBusy : textIdle;
+  btn.classList.toggle("loading", !!isLoading);
+  btn.querySelector(".btn-label").textContent = isLoading ? textBusy : textIdle;
 }
 
-function scrollToHash(hash){
-  const target = document.querySelector(hash);
-  if(!target) return;
-  const top = target.getBoundingClientRect().top + window.scrollY - 70;
-  window.scrollTo({ top, behavior: "smooth" });
+async function apiPost(endpoint, data, isForm=false){
+  const opts = isForm ? { method:"POST", body:data } : {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify(data)
+  };
+  const res = await fetch(baseURL + endpoint, opts);
+  if(!res.ok){
+    const msg = await res.text();
+    throw new Error(msg || res.statusText);
+  }
+  return res.json();
 }
 
-
-// Navigation behavior
+// Navigation
 const navToggle = $("#navToggle");
 const navLinks = $("#navLinks");
 navToggle?.addEventListener("click", ()=> navLinks.classList.toggle("open"));
@@ -39,35 +47,11 @@ $$(".nav-link").forEach(a=>{
   a.addEventListener("click", (e)=>{
     e.preventDefault();
     const href = a.getAttribute("href");
-    if(href?.startsWith("#")) scrollToHash(href);
-  });
-});
-
-// Highlight active section
-const sections = ["#home","#analyze","#results","#timeline","#risks","#about"].map(id=>document.querySelector(id));
-const navMap = {};
-$$(".nav-link").forEach(a=> navMap[a.getAttribute("href")] = a);
-
-const io = new IntersectionObserver((entries)=>{
-  entries.forEach(entry=>{
-    if(entry.isIntersecting){
-      const id = `#${entry.target.id}`;
-      $$(".nav-link").forEach(n=>n.classList.remove("active"));
-      navMap[id]?.classList.add("active");
+    if(href?.startsWith("#")){
+      document.querySelector(href)?.scrollIntoView({behavior:"smooth"});
     }
   });
-},{ rootMargin: "-40% 0px -55% 0px", threshold: 0.01 });
-sections.forEach(s=> s && io.observe(s));
-
-// Sticky navbar subtle effect
-const navbar = $("#navbar");
-let lastY = window.scrollY;
-document.addEventListener("scroll", ()=>{
-  const y = window.scrollY;
-  navbar.style.boxShadow = y>10 ? "0 8px 30px rgba(0,0,0,.25)" : "none";
-  lastY = y;
 });
-
 
 // Tabs
 $$(".tab-btn").forEach(btn=>{
@@ -79,164 +63,140 @@ $$(".tab-btn").forEach(btn=>{
   });
 });
 
+// Global State
+let LAST_TEXT = "";
+let LAST_RESULTS = { simple:"", advanced:"", timeline:[], risks:[] };
 
-// Upload + Analyze
+// Upload + Analyze Flow
 const uploadBtn = $("#uploadBtn");
 const fileInput = $("#fileInput");
 const uploadStatus = $("#uploadStatus");
 const fileBadge = $("#fileBadge");
 
-let LAST_RESULT = null;   // keep recent analysis to share with chatbot
-let LAST_FILE_ID = null;  // if backend returns some id
-
 uploadBtn?.addEventListener("click", async ()=>{
-  const file = fileInput.files?.[0];
-  if(!file){ alert("Please choose a file first."); return; }
+  if(!fileInput.files[0]){
+    setText(uploadStatus, "Please select a file first.");
+    return;
+  }
 
-  const formData = new FormData();
-  formData.append("file", file);
+  setLoading(uploadBtn, true, "Upload & Analyze", "Analyzing…");
+  setText(uploadStatus, "Uploading…");
 
-  setLoading(uploadBtn, true);
-  setText(uploadStatus, `Uploading ${file.name}…`);
   try{
-    const res = await fetch(baseURL + endpoints.upload, { method: "POST", body: formData });
-    if(!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    const data = await res.json();
+    // Step 1: Upload file
+    const fd = new FormData();
+    fd.append("file", fileInput.files[0]);
+    const uploadRes = await apiPost(endpoints.upload, fd, true);
 
-    LAST_RESULT = data;
-    LAST_FILE_ID = data.file_id ?? null;
-
-    $("#simple").textContent  = data.simplified || "No simplified output.";
-    $("#advanced").textContent = data.advanced || "No advanced output.";
-
-    const tList = $("#timelineList"); tList.innerHTML = "";
-    (data.timeline || []).forEach(ev=>{
-      const li = document.createElement("li");
-      li.textContent = `${ev.date ?? "—"} • ${ev.event ?? ""}`;
-      tList.appendChild(li);
-    });
-
-    const rList = $("#riskList"); rList.innerHTML = "";
-    (data.risks || []).forEach(risk=>{
-      const li = document.createElement("li");
-      li.textContent = risk;
-      rList.appendChild(li);
-    });
-
-    // UI niceties
+    LAST_TEXT = uploadRes.full_text;
     fileBadge.hidden = false;
-    fileBadge.textContent = file.name;
-    setText(uploadStatus, "Done. Jump to Results ↓");
-    scrollToHash("#results");
-  } catch(err){
-    console.error(err);
-    setText(uploadStatus, "Upload failed. Check console & CORS settings on backend.");
-    alert("Upload failed. Ensure FastAPI allows CORS for your frontend origin.");
-  } finally{
-    setLoading(uploadBtn, false);
-  }
-});
+    setText(fileBadge, uploadRes.filename);
+    setText(uploadStatus, "File uploaded. Running analysis…");
 
-// Quick question (sends text to chatbot endpoint too)
-$("#askBtn")?.addEventListener("click", ()=>{
-  const q = $("#quickQuestion").value.trim();
-  if(!q) return;
-  openChat();
-  enqueueUserMessage(q);
-  sendChat(q);
-});
+    // Step 2: Rewrite simplified
+    const simple = await apiPost(endpoints.rewrite, { text: LAST_TEXT, mode:"layman" });
 
+    // Show simplified + original
+    LAST_RESULTS.simple = simple.rewritten_text;
+    LAST_RESULTS.advanced = LAST_TEXT;
 
-// Chatbot
-const chatToggle = $("#chatToggle");
-const chatPanel  = $("#chatPanel");
-const chatClose  = $("#chatClose");
-const chatForm   = $("#chatForm");
-const chatInput  = $("#chatText");
-const chatMsgs   = $("#chatMessages");
+    $("#resultsEmpty").style.display="none";
+    setHTMLSafe($("#simple"), LAST_RESULTS.simple);
+    setHTMLSafe($("#advanced"), LAST_RESULTS.advanced);
 
-function openChat(){ chatPanel.classList.add("open"); chatInput?.focus(); }
-function closeChat(){ chatPanel.classList.remove("open"); }
-chatToggle?.addEventListener("click", openChat);
-chatClose?.addEventListener("click", closeChat);
-
-function appendMsg(role, text, extraClass=""){
-  const div = document.createElement("div");
-  div.className = `msg ${role} ${extraClass}`.trim();
-  div.textContent = text;
-  chatMsgs.appendChild(div);
-  chatMsgs.scrollTop = chatMsgs.scrollHeight;
-  return div;
-}
-
-function enqueueUserMessage(text){
-  return appendMsg("user", text);
-}
-
-function enqueueBotThinking(){
-  return appendMsg("bot", "Thinking…", "thinking");
-}
-
-chatForm?.addEventListener("submit", (e)=>{
-  e.preventDefault();
-  const text = chatInput.value.trim();
-  if(!text) return;
-  enqueueUserMessage(text);
-  chatInput.value = "";
-  sendChat(text);
-});
-
-async function sendChat(message){
-  const thinking = enqueueBotThinking();
-  try{
-    const payload = {
-      message,
-      file_id: LAST_FILE_ID,
-      context: {
-        simplified: LAST_RESULT?.simplified ?? null,
-        advanced: LAST_RESULT?.advanced ?? null,
-        timeline: LAST_RESULT?.timeline ?? null,
-        risks: LAST_RESULT?.risks ?? null
-      }
-    };
-
-    const res = await fetch(baseURL + endpoints.chat, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    // If your backend streams (text/event-stream), handle it here
-    const ctype = res.headers.get("content-type") || "";
-    if(ctype.includes("text/event-stream")){
-      // Stream tokens line-by-line
-      thinking.textContent = "";
-      thinking.classList.remove("thinking");
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      while(true){
-        const { value, done } = await reader.read();
-        if(done) break;
-        thinking.textContent += decoder.decode(value, { stream:true });
-        chatMsgs.scrollTop = chatMsgs.scrollHeight;
-      }
-    } else {
-      if(!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      const data = await res.json();
-      const reply = data.reply || data.answer || JSON.stringify(data, null, 2);
-      thinking.textContent = reply;
-      thinking.classList.remove("thinking");
+    // Step 3: Timeline
+    const mapRes = await apiPost(endpoints.map, { contract_text: LAST_TEXT });
+    LAST_RESULTS.timeline = mapRes.timeline || [];
+    if(LAST_RESULTS.timeline.length){
+      $("#timelineEmpty").style.display="none";
+      const tl = $("#timelineList");
+      tl.innerHTML = "";
+      LAST_RESULTS.timeline.forEach(ev=>{
+        const li = document.createElement("li");
+        li.textContent = `${ev.date_description}: ${ev.event}`;
+        tl.appendChild(li);
+      });
     }
-  } catch(err){
+
+    // Step 4: Risk scan
+    const riskRes = await apiPost(endpoints.risk, { text: LAST_TEXT });
+    LAST_RESULTS.risks = riskRes.risks || riskRes; // depending on your service
+    if(LAST_RESULTS.risks.length){
+      $("#risksEmpty").style.display="none";
+      const rl = $("#riskList");
+      rl.innerHTML = "";
+      LAST_RESULTS.risks.forEach(r=>{
+        const li = document.createElement("li");
+        li.textContent = r;
+        rl.appendChild(li);
+      });
+    }
+
+    setText(uploadStatus, "Analysis complete!");
+  }catch(err){
     console.error(err);
-    thinking.textContent = "I couldn't reach the chat endpoint. Check that your backend is running and CORS is enabled.";
-    thinking.classList.remove("thinking");
+    setText(uploadStatus, "Error: " + err.message);
+  }finally{
+    setLoading(uploadBtn, false, "Upload & Analyze", "Analyzing…");
   }
+});
+
+// Quick Question
+const quickQ = $("#quickQuestion");
+const askBtn = $("#askBtn");
+
+askBtn?.addEventListener("click", async ()=>{
+  const q = quickQ.value.trim();
+  if(!q) return;
+
+  askBtn.disabled = true;
+  try{
+    const res = await apiPost(endpoints.ask, { contract_text: LAST_TEXT, question: q });
+    alert("Answer: " + res.answer);
+  }catch(err){
+    alert("Error: " + err.message);
+  }finally{
+    askBtn.disabled = false;
+  }
+});
+
+// Chatbot Panel
+const chatToggle = $("#chatToggle");
+const chatPanel = $("#chatPanel");
+const chatClose = $("#chatClose");
+const chatForm = $("#chatForm");
+const chatText = $("#chatText");
+const chatMessages = $("#chatMessages");
+
+function addMsg(text, who="bot"){
+  const div = document.createElement("div");
+  div.className = "msg " + who;
+  div.textContent = text;
+  chatMessages.appendChild(div);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// Open chat if user presses "?" anywhere
-document.addEventListener("keydown",(e)=>{
-  if(e.key === "/" && !e.metaKey && !e.ctrlKey){
-    e.preventDefault(); openChat();
+chatToggle?.addEventListener("click", ()=> chatPanel.classList.add("open"));
+chatClose?.addEventListener("click", ()=> chatPanel.classList.remove("open"));
+
+chatForm?.addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const q = chatText.value.trim();
+  if(!q) return;
+  addMsg(q, "user");
+  chatText.value = "";
+
+  const thinking = document.createElement("div");
+  thinking.className="msg bot thinking";
+  thinking.textContent="Thinking…";
+  chatMessages.appendChild(thinking);
+
+  try{
+    const res = await apiPost(endpoints.ask, { contract_text: LAST_TEXT, question:q });
+    thinking.remove();
+    addMsg(res.answer, "bot");
+  }catch(err){
+    thinking.remove();
+    addMsg("Error: " + err.message, "bot");
   }
 });
