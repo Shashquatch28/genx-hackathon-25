@@ -120,12 +120,25 @@ uploadBtn?.addEventListener("click", async ()=>{
 
     // Step 4: Risk scan
     const riskRes = await apiPost(endpoints.risk, { text: LAST_TEXT });
-    LAST_RESULTS.risks = riskRes.risks || riskRes; // depending on your service
-    if(LAST_RESULTS.risks.length){
-      $("#risksEmpty").style.display="none";
+
+    // Extract risks from backend response
+    LAST_RESULTS.risks = [];
+    if (riskRes.flagged_clauses && riskRes.flagged_clauses.length) {
+      riskRes.flagged_clauses.forEach(fc => {
+        if (fc.keyword_flags?.length) {
+          fc.keyword_flags.forEach(f => LAST_RESULTS.risks.push(f.term));
+        }
+        if (fc.contextual_flags?.length) {
+          fc.contextual_flags.forEach(f => LAST_RESULTS.risks.push(f.term));
+        }
+      });
+    }
+
+    if (LAST_RESULTS.risks.length) {
+      $("#risksEmpty").style.display = "none";
       const rl = $("#riskList");
       rl.innerHTML = "";
-      LAST_RESULTS.risks.forEach(r=>{
+      LAST_RESULTS.risks.forEach(r => {
         const li = document.createElement("li");
         li.textContent = r;
         rl.appendChild(li);
@@ -140,6 +153,34 @@ uploadBtn?.addEventListener("click", async ()=>{
     setLoading(uploadBtn, false, "Upload & Analyze", "Analyzing…");
   }
 });
+
+// RISK LIST HANDLER
+function renderRiskList(risks) {
+    try {
+        const riskList = document.getElementById("riskList");
+        const risksEmpty = document.getElementById("risksEmpty");
+
+        // Reset list
+        riskList.innerHTML = "";
+
+        if (!risks || risks.length === 0) {
+            risksEmpty.style.display = "block";
+            return;
+        } else {
+            risksEmpty.style.display = "none";
+        }
+
+        // Add each risk as a list item
+        risks.forEach((risk, i) => {
+            const li = document.createElement("li");
+            li.textContent = `${i + 1}. ${risk}`;
+            riskList.appendChild(li);
+        });
+    } catch (err) {
+        console.error("Error rendering risk list:", err);
+    }
+}
+
 
 // Quick Question
 const quickQ = $("#quickQuestion");
