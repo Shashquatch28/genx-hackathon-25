@@ -18,7 +18,8 @@ PROCESSOR_ID = os.getenv("GCP_PROCESSOR_ID")
 
 # --- Fail fast with clear messages ---
 assert GOOGLE_APPLICATION_CREDENTIALS, "Missing GOOGLE_APPLICATION_CREDENTIALS in .env"
-assert os.path.exists(GOOGLE_APPLICATION_CREDENTIALS), f"Service account key not found at: {GOOGLE_APPLICATION_CREDENTIALS}"
+if not os.getenv("GOOGLE_CREDENTIALS_BASE64"):  # Running locally
+    assert os.path.exists(GOOGLE_APPLICATION_CREDENTIALS), f"Service account key not found at: {GOOGLE_APPLICATION_CREDENTIALS}"
 assert PROJECT_ID,  "Missing GCP_PROJECT_ID in .env"
 assert LOCATION,    "Missing GCP_LOCATION in .env"
 assert PROCESSOR_ID,"Missing GCP_PROCESSOR_ID in .env"
