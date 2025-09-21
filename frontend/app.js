@@ -5,7 +5,8 @@ const endpoints = {
   rewrite: "/rewrite",
   map: "/map",
   risk: "/risk/scan",
-  ask: "/ask"
+  ask: "/ask",
+  contextualize: "/contextualize/scan"
 };
 
 // Helpers
@@ -241,3 +242,86 @@ chatForm?.addEventListener("submit", async (e)=>{
     addMsg("Error: " + err.message, "bot");
   }
 });
+
+// CONTEXTUALIZER HANDLER
+const explainBtn = $("#explainBtn");
+const selectedText = $("#selectedText");
+const userRole = $("#userRole");
+const userLocation = $("#userLocation");
+const contractType = $("#contractType");
+const explanationTone = $("#explanationTone");
+const contextualizerEmpty = $("#contextualizerEmpty");
+const contextualizerResult = $("#contextualizerResult");
+const explanationText = $("#explanationText");
+const usedHints = $("#usedHints");
+const hintsList = $("#hintsList");
+
+explainBtn?.addEventListener("click", async () => {
+  const text = selectedText.value.trim();
+  if (!text) {
+    alert("Please enter contract text to explain.");
+    return;
+  }
+
+  setLoading(explainBtn, true, "Explain This Clause", "Explaining...");
+
+  try {
+    const context = {
+      role: userRole.value,
+      location: userLocation.value.trim() || null,
+      contract_type: contractType.value || null,
+      interests: null, // Could be expanded later
+      tone: explanationTone.value
+    };
+
+    const response = await apiPost(endpoints.contextualize, {
+      text: text,
+      context: context
+    });
+
+    // Show results
+    contextualizerEmpty.style.display = "none";
+    contextualizerResult.style.display = "block";
+    
+    setHTMLSafe(explanationText, response.explanation);
+    
+    // Show hints if available
+    if (response.used_hints && response.used_hints.length > 0) {
+      usedHints.style.display = "block";
+      hintsList.innerHTML = "";
+      response.used_hints.forEach(hint => {
+        const li = document.createElement("li");
+        li.textContent = hint;
+        hintsList.appendChild(li);
+      });
+    } else {
+      usedHints.style.display = "none";
+    }
+
+  } catch (err) {
+    console.error("Contextualizer error:", err);
+    alert("Error explaining clause: " + err.message);
+  } finally {
+    setLoading(explainBtn, false, "Explain This Clause", "Explaining...");
+  }
+});
+
+// Add text selection helper
+function selectTextFromContract() {
+  const contractText = $("#advanced").textContent || $("#simple").textContent;
+  if (contractText && contractText.trim()) {
+    selectedText.value = contractText.substring(0, 1000) + "...";
+    selectedText.focus();
+  }
+}
+
+// Add button to copy contract text for contextualization
+const copyTextBtn = document.createElement("button");
+copyTextBtn.className = "btn ghost";
+copyTextBtn.innerHTML = '<span class="btn-label">Use Contract Text</span>';
+copyTextBtn.addEventListener("click", selectTextFromContract);
+
+// Insert the button after the explain button
+if (explainBtn && explainBtn.parentNode) {
+  explainBtn.parentNode.insertBefore(copyTextBtn, explainBtn.nextSibling);
+}

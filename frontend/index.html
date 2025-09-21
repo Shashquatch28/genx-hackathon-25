@@ -21,6 +21,7 @@
         <li><a href="#results" class="nav-link">Results</a></li>
         <li><a href="#timeline" class="nav-link">Timeline</a></li>
         <li><a href="#risks" class="nav-link">Risk Radar</a></li>
+        <li><a href="#contextualizer" class="nav-link">Contextualizer</a></li>
         <li><a href="#about" class="nav-link">About</a></li>
       </ul>
     </div>
@@ -95,6 +96,79 @@
         <p>No risks identified yet.</p>
       </div>
       <ul id="riskList" class="risk-grid" aria-live="polite"></ul>
+    </section>
+
+    <!-- CONTEXTUALIZER -->
+    <section id="contextualizer" class="section card" aria-labelledby="contextualizer-title">
+      <h2 id="contextualizer-title">Smart Contextualizer</h2>
+      <p class="muted">Select text from your contract to get personalized explanations based on your role and situation.</p>
+      
+      <div class="contextualizer-controls">
+        <div class="context-form">
+          <div class="form-row">
+            <label for="userRole">Your Role</label>
+            <select id="userRole">
+              <option value="tenant">Tenant</option>
+              <option value="landlord">Landlord</option>
+              <option value="employee">Employee</option>
+              <option value="employer">Employer</option>
+              <option value="customer">Customer</option>
+              <option value="vendor">Vendor</option>
+              <option value="reader">General Reader</option>
+            </select>
+          </div>
+          
+          <div class="form-row">
+            <label for="userLocation">Location (Optional)</label>
+            <input type="text" id="userLocation" placeholder="e.g., California, New York">
+          </div>
+          
+          <div class="form-row">
+            <label for="contractType">Contract Type</label>
+            <select id="contractType">
+              <option value="">Select type</option>
+              <option value="lease">Lease/Rental</option>
+              <option value="employment">Employment</option>
+              <option value="mortgage">Mortgage</option>
+              <option value="saas">SaaS/Software</option>
+              <option value="service">Service Agreement</option>
+              <option value="purchase">Purchase Agreement</option>
+            </select>
+          </div>
+          
+          <div class="form-row">
+            <label for="explanationTone">Explanation Style</label>
+            <select id="explanationTone">
+              <option value="plain">Plain English</option>
+              <option value="lawyer">Legal Detail</option>
+              <option value="exec">Executive Summary</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="text-selection">
+          <label for="selectedText">Selected Contract Text</label>
+          <textarea id="selectedText" placeholder="Copy and paste the contract clause you want explained..." rows="4"></textarea>
+          <button id="explainBtn" class="btn primary">
+            <span class="spinner" aria-hidden="true"></span>
+            <span class="btn-label">Explain This Clause</span>
+          </button>
+        </div>
+      </div>
+      
+      <div id="contextualizerEmpty" class="empty-state" role="status">
+        <div class="empty-icon" aria-hidden="true">🔍</div>
+        <p>Select contract text and configure your context to get personalized explanations.</p>
+      </div>
+      
+      <div id="contextualizerResult" class="contextualizer-result" style="display: none;">
+        <h3>Explanation</h3>
+        <div id="explanationText" class="explanation-content"></div>
+        <div id="usedHints" class="used-hints" style="display: none;">
+          <h4>Legal Context Used</h4>
+          <ul id="hintsList"></ul>
+        </div>
+      </div>
     </section>
 
     <!-- ABOUT -->
