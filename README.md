@@ -1,6 +1,8 @@
 
 # Legal Demystifier
 
+Website URL: https://plainspeakai.onrender.com/
+
 Legal contracts are often written in complex jargon, making them difficult for non-lawyers to understand. Our project simplifies this process by providing an AI-powered platform that:
 
 - Uploads and analyzes legal documents
@@ -165,11 +167,10 @@ The backend will run at: http://127.0.0.1:8000
 ```http
     npx serve .
 ```
-Frontend will be available at:http://localhost:3000 (if using serve)
+Frontend will be available at:http://localhost:3000 (if using server)
 ## Authors
 
 - [@Shashquatch28](https://github.com/Shashquatch28)
 - [@kavvyaaaa](https://github.com/kavvyaaaa)
 - [@shourya-tiwari](https://github.com/shourya-tiwari)
-- [@shirindongre](https://github.com/shirindongre)
 
